@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func Register(c *fiber.Ctx) error {
@@ -25,14 +24,14 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 14)
-
 	user := models.User{
 		FirstName: data["first_name"],
 		LastName:  data["last_name"],
 		Email:     data["email"],
-		Password:  password,
+		RoleId:    1,
 	}
+
+	user.SetPassword(data["password"])
 
 	database.DB.Create(&user)
 
@@ -57,7 +56,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := bcrypt.CompareHashAndPassword(user.Password, []byte(data["password"])); err != nil {
+	if err := user.ComparePassword(data["password"]); err != nil {
 		c.Status(400)
 		return c.JSON(fiber.Map{
 			"message": "incorrect password",
@@ -109,4 +108,60 @@ func Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "success",
 	})
+}
+
+func UpdateInfo(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	cookie := c.Cookies("jwt")
+
+	id, _ := util.ParseJwt(cookie)
+
+	userId, _ := strconv.Atoi(id)
+
+	user := models.User{
+		Id:        uint(userId),
+		FirstName: data["first_name"],
+		LastName:  data["last_name"],
+		Email:     data["email"],
+	}
+
+	database.DB.Model(&user).Updates(user)
+
+	return c.JSON(user)
+}
+
+func UpdatePassword(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	if data["password"] != data["password_confirm"] {
+		c.Status(400)
+		return c.JSON(fiber.Map{
+			"message": "password do not match",
+		})
+	}
+
+	cookie := c.Cookies("jwt")
+
+	id, _ := util.ParseJwt(cookie)
+
+	userId, _ := strconv.Atoi(id)
+
+	user := models.User{
+		Id: uint(userId),
+	}
+
+	user.SetPassword(data["password"])
+
+	database.DB.Model(&user).Updates(user)
+
+	return c.JSON(user)
 }
