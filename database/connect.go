@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *gorm.DB
+
 func Connect() {
 	err := godotenv.Load()
 	if err != nil {
@@ -20,6 +22,8 @@ func Connect() {
 	if err != nil {
 		panic("Could not connect to the database")
 	}
+
+	DB = database
 
 	database.AutoMigrate(&models.User{})
 }
