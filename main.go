@@ -3,6 +3,7 @@ package main
 import (
 	"go-admin/database"
 	"go-admin/routes"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -19,5 +20,5 @@ func main() {
 
 	routes.Setup(app)
 
-	app.Listen(":3000")
+	app.Listen(os.Getenv("PORT"))
 }
